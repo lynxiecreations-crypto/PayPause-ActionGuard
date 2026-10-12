@@ -44,7 +44,7 @@ def main():
         texts, labels, test_size=0.20, random_state=42, stratify=labels
     )
     model = Pipeline([
-        ("tfidf", TfidfVectorizer(lowercase=True, strip_accents="unicode",
+        ("tfidf", TfidfVectorizer(lowercase=True, strip_accents=None,
                                   ngram_range=(1, 2), min_df=2, max_features=60000)),
         ("classifier", LogisticRegression(max_iter=1500, class_weight="balanced", random_state=42))
     ])
