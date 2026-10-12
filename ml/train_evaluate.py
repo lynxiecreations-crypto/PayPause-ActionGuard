@@ -33,7 +33,7 @@ def load_dataset():
         name = next(n for n in zf.namelist() if n.endswith("SMSSpamCollection"))
         rows = []
         for line in zf.read(name).decode("utf-8", errors="replace").splitlines():
-            parts = line.split("\\t", 1)
+            parts = line.split("\t", 1)
             if len(parts) == 2 and parts[0] in {"ham", "spam"}:
                 rows.append((parts[1], 1 if parts[0] == "spam" else 0))
     return np.array([r[0] for r in rows], dtype=object), np.array([r[1] for r in rows], dtype=int)
