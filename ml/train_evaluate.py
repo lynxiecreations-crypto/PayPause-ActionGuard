@@ -80,8 +80,13 @@ def main():
         from skl2onnx import convert_sklearn
         from skl2onnx.common.data_types import StringTensorType
         onx = convert_sklearn(model, initial_types=[("text", StringTensorType([None, 1]))], target_opset=17)
-        (OUT_DIR / "sms_spam_baseline.onnx").write_bytes(onx.SerializeToString())
-        print("ONNX exported to", OUT_DIR / "sms_spam_baseline.onnx")
+        import onnx
+        onnx.checker.check_model(onx)
+        onnx_path = OUT_DIR / "sms_spam_baseline.onnx"
+        onnx_path.write_bytes(onx.SerializeToString())
+        # Re-open the serialized artifact and validate it, not only the in-memory graph.
+        onnx.checker.check_model(onnx.load(str(onnx_path)))
+        print("ONNX export and serialized-model validation passed:", onnx_path)
     except ImportError:
         print("ONNX not exported: optional conversion dependencies are unavailable.")
     except Exception as exc:
