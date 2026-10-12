@@ -1,7 +1,7 @@
 """
 Reproducible baseline training/evaluation for PayPause.
 Downloads the UCI SMS Spam Collection, trains TF-IDF + LogisticRegression,
-reports held-out metrics, and exports ONNX if skl2onnx is installed.
+reports held-out metrics, and attempts ONNX export when supported.
 
 This general SMS spam baseline is NOT a validated Indian UPI scam detector.
 """
@@ -33,7 +33,7 @@ def load_dataset():
         name = next(n for n in zf.namelist() if n.endswith("SMSSpamCollection"))
         rows = []
         for line in zf.read(name).decode("utf-8", errors="replace").splitlines():
-            parts = line.split("\t", 1)
+            parts = line.split("\\t", 1)
             if len(parts) == 2 and parts[0] in {"ham", "spam"}:
                 rows.append((parts[1], 1 if parts[0] == "spam" else 0))
     return np.array([r[0] for r in rows], dtype=object), np.array([r[1] for r in rows], dtype=int)
@@ -83,7 +83,12 @@ def main():
         (OUT_DIR / "sms_spam_baseline.onnx").write_bytes(onx.SerializeToString())
         print("ONNX exported to", OUT_DIR / "sms_spam_baseline.onnx")
     except ImportError:
-        print("ONNX not exported. Install skl2onnx and onnx to enable export.")
+        print("ONNX not exported: optional conversion dependencies are unavailable.")
+    except Exception as exc:
+        # Keep evaluation artifacts available even if this pipeline cannot be
+        # represented by the installed ONNX converter. Export support is separate
+        # from the validity of the measured sklearn baseline.
+        print(f"ONNX export skipped ({type(exc).__name__}): {exc}")
     print("IMPORTANT: review metrics and test against a separate Indian scam dataset before using in app.")
 
 if __name__ == "__main__":
