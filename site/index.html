@@ -59,7 +59,35 @@
 </div>
 </main>
 <script>
+const MODEL_API='https://paypause-actionguard-model-api.onrender.com';
 const $=id=>document.getElementById(id);
+async function runModelCheck(text){
+  const target=$('detailHint');
+  if(target){target.className='hint';target.textContent='Checking with the trained baseline…'}
+  try{
+    const response=await fetch(MODEL_API+'/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+    if(!response.ok)throw new Error('Model API unavailable ('+response.status+')');
+    const data=await response.json();
+    const label=data.model_label==='spam_like'?'Spam-like text':'Ham-like text';
+    const pct=data.model_spam_score==null?'Not available':Math.round(data.model_spam_score*100)+'%';
+    const signalHtml=data.risk_signals.length?data.risk_signals.map(s=>'<li><strong>'+escapeHtml(s.severity.toUpperCase())+'</strong> — '+escapeHtml(s.explanation)+'</li>').join(''):'<li>No configured risk phrase matched. This does not prove the message is safe.</li>';
+    const html='<div class="widget" style="margin-top:12px"><div class="widget-head"><strong>Live model result</strong><span class="tag">'+label+'</span></div><p class="tiny">Model spam score: '+pct+' · '+data.model+'</p><p class="tiny">Signals from separate transparent rules:</p><ul style="font-size:12px;line-height:1.6;padding-left:20px">'+signalHtml+'</ul><p class="tiny">'+escapeHtml(data.note)+'</p></div>';
+    if(target){target.className='';target.innerHTML=html}else toast(label+' · '+data.signal_count+' rule signals');
+  }catch(err){
+    if(target){target.className='hint warn';target.textContent='Live model check unavailable right now. No model verdict was produced. Try again when the API is awake.'}
+    else toast('Live model unavailable. No verdict produced.');
+  }
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
+function scenarioTextForModel(){
+  if(scenarioState.kind==='chat')return T(scenarioState.text);
+  if(scenarioState.kind==='email')return T(scenarioState.body)+' '+T(scenarioState.subject);
+  if(scenarioState.kind==='call')return T(scenarioState.script);
+  if(scenarioState.kind==='web')return T(scenarioState.body)+' '+scenarioState.url;
+  if(scenarioState.kind==='apk')return T(scenarioState.key==='apkBank'?'apk1':scenarioState.key==='apkDelivery'?'apk2':'apk3')+' '+T('apkPrompt')+' '+T('smsPermission')+' '+T('accessPermission')+' '+T('contactPermission');
+  if(scenarioState.kind==='pay')return T('collectTitle')+' '+T('collectDesc')+' '+T('paymentWarning')+' '+T('amountValue');
+  return T('helpReminder');
+}
 const ICONS={
 chat:'<path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.6 8.6 0 0 1-3.6-.8L4 20l1.5-4A7.4 7.4 0 0 1 4 11.5 7.5 7.5 0 0 1 12 4a7.5 7.5 0 0 1 8 7.5Z"/><path d="M8 11h8m-8 3h5"/>',
 email:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>',
@@ -112,7 +140,7 @@ web:()=>'<div class="widget"><div class="widget-head"><strong>'+T('siteTitle')+'
 download:()=>'<div class="widget"><div class="widget-head"><strong>'+T('downloadsHead')+'</strong><span class="tag">'+T('simOnly')+'</span></div>'+row('download','FastBank Update', 'FastBank_Update.apk','apkBank','danger')+row('download','Parcel Track Helper','Parcel_Track_Helper.apk','apkDelivery','danger')+row('download','Photo Editor','Photo_Editor.apk','apkPhoto','safe')+'</div><div class="hint warn">'+T('permissionOkay')+'</div>',
 pay:()=>'<div class="widget"><div class="widget-head"><strong>'+T('payHead')+'</strong><span class="tag">'+T('simOnly')+'</span></div><div class="center"><div class="avatar" style="margin:10px auto;background:#607ed9">RP</div><strong>'+T('recipient')+'</strong><div class="payment-total">'+T('amountValue')+'</div><div class="tiny">'+T('collectTitle')+'</div></div><div class="hint warn">'+T('paymentWarning')+'</div><div class="action-stack">'+btn(T('checkPayee'),'payCheck','recommended')+btn(T('payNow'),'payRisk','')+btn(T('safePay'),'paySafe','')+'</div></div>',
 settings:()=>'<div class="widget"><div class="widget-head"><strong>'+T('settingsTitle')+'</strong></div><p class="tiny">'+T('settingsDesc')+'</p><div class="setting-row"><span>'+T('languageSetting')+'</span><select id="simLanguage" style="border:1px solid #dce3ee;border-radius:9px;padding:7px;background:#fff"><option value="en">English</option><option value="gu">ગુજરાતી</option><option value="hi">हिन्दी</option></select></div><div class="setting-row"><span>'+T('easySetting')+'</span><input id="simEasy" class="switch" type="checkbox" '+(easy?'checked':'')+'></div><div class="setting-row"><span>'+T('voiceSetting')+'</span>'+icon('volume')+'</div><div class="action-stack">'+btn(T('reset'),'reset','')+btn(T('privacy'),'safety','')+'</div></div><div class="footnote">'+T('clearNote')+'</div>',
-safety:()=>'<div class="widget"><div class="widget-head"><strong>'+T('helpTitle')+'</strong><span class="tag">'+T('simOnly')+'</span></div><p style="font-size:12px;line-height:1.65">'+T('helpDesc')+'</p><div class="hint warn">'+T('helpReminder')+'</div><div class="action-stack">'+btn(icon('volume')+' '+T('listen'),'speak:helpReminder','recommended')+btn(T('backHome'),'app:home','')+'</div></div><div class="widget"><strong>'+T('privacy')+'</strong><p class="tiny">'+T('privacyText')+'</p></div>'
+safety:()=>'<div class="widget"><div class="widget-head"><strong>'+T('helpTitle')+'</strong><span class="tag">'+T('simOnly')+'</span></div><p style="font-size:12px;line-height:1.65">'+T('helpDesc')+'</p><div class="hint warn">'+T('helpReminder')+'</div><div class="action-stack">'+btn(icon('volume')+' '+T('listen'),'speak:helpReminder','recommended')+btn(T('backHome'),'app:home','')+'</div></div><div class="widget"><div class="widget-head"><strong>Detection technology</strong><span class="tag">Baseline</span></div><p class="tiny">Text model: TF-IDF + Logistic Regression, trained on the UCI SMS Spam Collection. Separate rule checks look for OTP/PIN requests, urgency, payment pressure, secrecy, links and APK installation language.</p><p class="tiny">Scope warning: the dataset is general English SMS spam, not a validated Indian UPI/banking scam dataset. A model score is not proof of fraud or a calibrated fraud probability.</p><button class="secondary" data-action="modelMetrics">View measured test metrics</button><div id="metricsPanel"></div></div><div class="widget"><strong>'+T('privacy')+'</strong><p class="tiny">'+T('privacyText')+'</p><p class="tiny">When you tap Explain risk, that fictional sample text is sent to the PayPause model API for inference. Do not enter real private messages. The API is designed not to store message text.</p></div>'
 };
 function row(ic,title,desc,action,tag=''){const a=apps.find(x=>x.icon===ic)||apps[0];return '<div class="listrow" data-action="'+action+'"><div class="avatar" style="background:'+a.color+'">'+icon(ic)+'</div><div class="rowmain"><div class="rowtitle"><span>'+title+'</span><span class="tiny">'+T('today')+'</span></div><div class="rowdesc">'+T(desc)+'</div></div>'+(tag?'<span class="tag '+tag+'">'+(tag==='safe'?T('normalTag'):T('suspiciousTag'))+'</span>':'')+'</div>'}
 const chatData={
@@ -140,10 +168,12 @@ views.bankCall=()=>callDetail('bankCall');views.familyCall=()=>callDetail('famil
 views.bankWeb=()=>webDetail('bankWeb');views.deliveryWeb=()=>webDetail('deliveryWeb');views.jobWeb=()=>webDetail('jobWeb');views.normalWeb=()=>webDetail('normalWeb');
 views.apkBank=()=>apkDetail('apkBank');views.apkDelivery=()=>apkDetail('apkDelivery');views.apkPhoto=()=>apkDetail('apkPhoto');
 views.payDetail=()=>paymentDetail();
+function loadModelMetrics(){const panel=$('metricsPanel');if(!panel)return;panel.textContent='Loading evaluation metrics…';fetch(MODEL_API+'/metrics').then(r=>{if(!r.ok)throw new Error('metrics unavailable');return r.json()}).then(m=>{panel.innerHTML='<p class="tiny">Dataset: '+escapeHtml(m.dataset)+' · '+m.total_examples+' messages · test set '+m.test_examples+'</p><p class="tiny">Precision: '+(m.precision*100).toFixed(2)+'% · Recall: '+(m.recall*100).toFixed(2)+'% · F1: '+(m.f1*100).toFixed(2)+'% · False-positive rate: '+(m.false_positive_rate*100).toFixed(2)+'%</p><p class="tiny">Confusion matrix — TN '+m.confusion_matrix.tn+', FP '+m.confusion_matrix.fp+', FN '+m.confusion_matrix.fn+', TP '+m.confusion_matrix.tp+'.</p><p class="tiny">These are held-out metrics on the general SMS dataset only.</p>'}).catch(()=>{panel.textContent='Evaluation metrics are not available until model training and API startup succeed.'})}
 function action(act){if(!act)return;
+if(act==='modelMetrics'){loadModelMetrics();return}
 if(act.startsWith('app:')){renderApp(act.slice(4));return}
 if(act.startsWith('speak:')){speak(act.slice(6));return}
-if(act.startsWith('explain:')){const risk=act.slice(8);const text=T(risk);const hint=$('detailHint');if(hint){hint.className='hint warn';hint.textContent=T('explainText')+' '+text+' '+T('helpReminder')}else toast(T('explainText')+' '+text);return}
+if(act.startsWith('explain:')){const risk=act.slice(8);const text=T(risk);const hint=$('detailHint');if(hint){hint.className='hint warn';hint.textContent=T('explainText')+' '+text+' '+T('helpReminder')}else toast(T('explainText')+' '+text);runModelCheck(scenarioTextForModel());return}
 if(act.startsWith('verify:')){const risk=act.slice(7);renderApp('outcome');$('phoneBody').innerHTML=outcome(risk,true);return}
 if(act.startsWith('risk:')){const risk=act.slice(5);renderApp('outcome');$('phoneBody').innerHTML=outcome(risk,false);return}
 if(act.startsWith('web:')){const url=act.slice(4);const key=url==='parcel-fee.example.invalid'?'deliveryWeb':url==='quick-work.example.invalid'?'jobWeb':'bankWeb';renderApp(key);return}
