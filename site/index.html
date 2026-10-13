@@ -233,7 +233,10 @@ function buildRecoveryPlan(){
  panel.innerHTML='<div class="hint '+(selected.includes('money')||selected.includes('credentials')||selected.includes('installed')||selected.includes('permissions')?'warn':'good')+'"><strong>Next steps based on your answers</strong><br>These are precautionary steps, not proof that your phone is infected.</div>'+steps.map(st=>'<div class="widget"><strong style="font-size:12px">'+st.title+'</strong><p style="font-size:12px;line-height:1.65;margin:8px 0 0">'+st.body+'</p></div>').join('')+'<div class="hint">Never install a “cleaner” suggested by a caller or message. Use official support channels only.</div>';
 }
 function action(act){if(!act)return;
-if(act.startsWith('scan:')){runDemoScan(act.slice(5));return}\nif(act==='recoveryPlan'){buildRecoveryPlan();return}\nif(act==='recoveryReset'){document.querySelectorAll('.recovery-choice').forEach(el=>el.checked=false);const p=$('recoveryPlan');if(p)p.innerHTML='';return}\nif(act==='senderCheck'){senderCheck();return}
+if(act.startsWith('scan:')){runDemoScan(act.slice(5));return}
+if(act==='recoveryPlan'){buildRecoveryPlan();return}
+if(act==='recoveryReset'){document.querySelectorAll('.recovery-choice').forEach(el=>el.checked=false);const p=$('recoveryPlan');if(p)p.innerHTML='';return}
+if(act==='senderCheck'){senderCheck();return}
 if(act==='modelMetrics'){loadModelMetrics();return}
 if(act.startsWith('app:')){renderApp(act.slice(4));return}
 if(act.startsWith('speak:')){speak(act.slice(6));return}
