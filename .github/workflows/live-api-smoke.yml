@@ -1,0 +1,47 @@
+name: Live model API smoke test
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/live-api-smoke.yml"
+      - "scripts/test_live_prediction.ps1"
+  workflow_dispatch:
+jobs:
+  live-api-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check live API health and model
+        run: |
+          set -euo pipefail
+          BASE="https://paypause-actionguard-model-api.onrender.com"
+          echo "Checking /health"
+          curl --fail --silent --show-error --max-time 90 "$BASE/health" -o health.json
+          cat health.json
+          python - <<'PY'
+          import json
+          with open("health.json") as f:
+              data = json.load(f)
+          if data.get("status") != "ok":
+              raise SystemExit("Health status is not ok")
+          if not data.get("model_loaded"):
+              raise SystemExit("Model is not loaded: " + str(data.get("model_load_error")))
+          PY
+      - name: Send fictional sample to /predict
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 90 \
+            -X POST "https://paypause-actionguard-model-api.onrender.com/predict" \
+            -H "Content-Type: application/json" \
+            -d '{"text":"Your bank account is blocked. Share your OTP immediately to avoid suspension."}' \
+            -o prediction.json
+          cat prediction.json
+          python - <<'PY'
+          import json
+          with open("prediction.json") as f:
+              data = json.load(f)
+          if not data.get("model_label"):
+              raise SystemExit("Prediction response missing model_label")
+          print("LIVE PREDICTION REQUEST SUCCEEDED. Label:", data["model_label"])
+          print("Note: general English SMS-spam baseline, not an India-specific fraud verdict.")
+          PY
