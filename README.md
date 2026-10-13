@@ -24,12 +24,15 @@ Share suspicious text from another app and choose PayPause ActionGuard. Confirm 
 - PWA and native Android app are separate deliverables.
 - Test security, privacy, and accessibility before release.
 
-## Reproducible model baseline (not yet trained)
-The `ml/` folder contains a script to download the UCI SMS Spam Collection, train TF-IDF + Logistic Regression, calculate held-out precision, recall, F1, confusion matrix and false-positive rate, and optionally export ONNX. It is not a UPI scam detector, and the model is not yet trained or bundled.
+## Trained text baseline and simulation API
+The Render model service trains TF-IDF + Logistic Regression on the UCI SMS Spam Collection during deployment, evaluates a stratified 80/20 random split, exports and validates an ONNX artifact, and serves inference at `/predict`. The phone simulation sends only its fictional sample text to this API when a user taps **Explain risk**. It does not access personal apps or inboxes.
 
-Run with Python 3.11+:
-```bash
-python -m pip install -r ml/requirements.txt
-python ml/train_evaluate.py
-```
-Review `ml/artifacts/metrics.json`. Evaluate against a separately labelled India-specific scam dataset before making claims about UPI/banking scam detection.
+- Model service: https://paypause-actionguard-model-api.onrender.com
+- Health: `/health`
+- Held-out metrics: `/metrics`
+- Inference: `POST /predict` with JSON `{"text":"sample message"}`
+- Model: TF-IDF word n-grams + Logistic Regression.
+- Separate rule checks flag OTP/PIN requests, urgency/threats, money pressure, secrecy/impersonation, links/login requests, and APK/device-permission language.
+- Automated smoke tests run in `.github/workflows/model-baseline.yml`.
+
+**Limitations:** UCI SMS Spam Collection is general English SMS spam, not an Indian UPI/banking scam dataset. The model is English-only, the score is not a calibrated fraud probability, and rule signals are not ML predictions. These results do not establish production readiness. Do not enter real private messages into the demo.
