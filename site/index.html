@@ -63,19 +63,41 @@ const MODEL_API='https://paypause-actionguard-model-api.onrender.com';
 const $=id=>document.getElementById(id);
 async function runModelCheck(text){
   const target=$('detailHint');
-  if(target){target.className='hint';target.textContent='Checking with the trained baseline…'}
+  if(!target){toast('Risk explanation is shown above.');return}
+  // Keep the local, plain-language warning visible while the optional model request runs.
+  const localExplanation=target.textContent||'';
+  target.className='hint warn';
+  target.style.whiteSpace='pre-line';
+  target.textContent=localExplanation+'\n\nChecking the sample with the trained baseline…';
   try{
-    const response=await fetch(MODEL_API+'/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
-    if(!response.ok)throw new Error('Model API unavailable ('+response.status+')');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(()=>controller.abort(), 18000);
+    let response;
+    try{
+      response=await fetch(MODEL_API+'/predict',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({text}),
+        signal:controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    if(!response.ok)throw new Error('Model API returned HTTP '+response.status);
     const data=await response.json();
+    if(!data || !data.model_label)throw new Error('Model API response was incomplete');
     const label=data.model_label==='spam_like'?'Spam-like text':'Ham-like text';
-    const pct=data.model_spam_score==null?'Not available':Math.round(data.model_spam_score*100)+'%';
-    const signalHtml=data.risk_signals.length?data.risk_signals.map(s=>'<li><strong>'+escapeHtml(s.severity.toUpperCase())+'</strong> — '+escapeHtml(s.explanation)+'</li>').join(''):'<li>No configured risk phrase matched. This does not prove the message is safe.</li>';
-    const html='<div class="widget" style="margin-top:12px"><div class="widget-head"><strong>Live model result</strong><span class="tag">'+label+'</span></div><p class="tiny">Model spam score: '+pct+' · '+data.model+'</p><p class="tiny">Signals from separate transparent rules:</p><ul style="font-size:12px;line-height:1.6;padding-left:20px">'+signalHtml+'</ul><p class="tiny">'+escapeHtml(data.note)+'</p></div>';
-    if(target){target.className='';target.innerHTML=html}else toast(label+' · '+data.signal_count+' rule signals');
+    const pct=data.model_spam_score==null?'Not available':Math.round(Number(data.model_spam_score)*100)+'%';
+    const signals=Array.isArray(data.risk_signals)?data.risk_signals:[];
+    const signalHtml=signals.length?signals.map(s=>'<li><strong>'+escapeHtml(String(s.severity||'info').toUpperCase())+'</strong> — '+escapeHtml(s.explanation||'Risk indicator detected.')+'</li>').join(''):'<li>No configured risk phrase matched. This does not prove the message is safe.</li>';
+    const html='<div class="widget" style="margin-top:12px"><div class="widget-head"><strong>Live model result</strong><span class="tag">'+label+'</span></div><p class="tiny">Model spam score: '+pct+' · '+escapeHtml(data.model||'TF-IDF + Logistic Regression')+'</p><p class="tiny">Signals from separate transparent rules:</p><ul style="font-size:12px;line-height:1.6;padding-left:20px">'+signalHtml+'</ul><p class="tiny">'+escapeHtml(data.note||'This is a general SMS spam baseline, not a verified fraud probability.')+'</p></div>';
+    target.className='';
+    target.innerHTML=escapeHtml(localExplanation).replace(/\n/g,'<br>')+html;
   }catch(err){
-    if(target){target.className='hint warn';target.textContent='Live model check unavailable right now. No model verdict was produced. Try again when the API is awake.'}
-    else toast('Live model unavailable. No verdict produced.');
+    target.className='hint warn';
+    target.style.whiteSpace='pre-line';
+    const reason=err && err.name==='AbortError'?'The model API took too long to respond.': 'The model API is temporarily unavailable.';
+    target.textContent=localExplanation+'\n\n'+reason+' Your risk explanation is still shown above; you can continue using the simulation without the model result.';
   }
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
