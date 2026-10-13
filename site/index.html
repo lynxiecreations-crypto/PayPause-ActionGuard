@@ -260,7 +260,7 @@ if(act==='safety'){renderApp('safety');return}
 $('phoneBody').addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b){action(b.dataset.action);return}const a=e.target.closest('[data-app]');if(a){renderApp(a.dataset.app);return}});
 $('phoneNav').addEventListener('click',e=>{const a=e.target.closest('[data-app]');if(a)renderApp(a.dataset.app)});
 $('welcomeApps').addEventListener('click',()=>toast('Choose “Enter simulated phone” to begin.'));
-$('startButton').addEventListener('click',enter);$('consentCheck').addEventListener('change',e=>$('startButton').disabled=!e.target.checked);
+$('startButton').addEventListener('click',enter);const syncConsent=()=>{$('startButton').disabled=!$('consentCheck').checked};$('consentCheck').addEventListener('change',syncConsent);syncConsent();
 $('languageSelect').addEventListener('change',e=>{lang=e.target.value;applyLanguage()});
 $('easySelect').addEventListener('change',e=>{easy=e.target.value==='easy';document.body.classList.toggle('easy',easy)});
 $('exitButton').addEventListener('click',exit);$('homeBtn').addEventListener('click',goHome);$('safetyBtn').addEventListener('click',()=>renderApp('safety'));
