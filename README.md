@@ -34,5 +34,6 @@ The Render model service trains TF-IDF + Logistic Regression on the UCI SMS Spam
 - Model: TF-IDF word n-grams + Logistic Regression.
 - Separate rule checks flag OTP/PIN requests, urgency/threats, money pressure, secrecy/impersonation, links/login requests, and APK/device-permission language.
 - Automated smoke tests run in `.github/workflows/model-baseline.yml`.
+- Run the live Render API smoke test from Windows PowerShell with `./scripts/test_live_prediction.ps1`; it checks `/health` and sends a fictional sample to `POST /predict`.
 
 **Limitations:** UCI SMS Spam Collection is general English SMS spam, not an Indian UPI/banking scam dataset. The model is English-only, the score is not a calibrated fraud probability, and rule signals are not ML predictions. These results do not establish production readiness. Do not enter real private messages into the demo.
