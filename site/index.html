@@ -27,7 +27,7 @@
 <div class="field"><label for="easySelect" data-i18n="accessLabel">Reading support</label><select id="easySelect"><option value="standard" data-i18n="standardMode">Standard mode</option><option value="easy" data-i18n="easyMode">Easy Mode · larger text</option></select></div>
 </div>
 <label class="checkline"><input type="checkbox" id="consentCheck"><span data-i18n="consent">I understand this is a fictional simulation. It will not access my real apps, messages, calls, contacts, files, bank accounts or payments.</span></label>
-<button id="startButton" class="primary" style="width:100%" data-i18n="start" type="button" onclick="if(typeof window.payPauseEnter==='function'){window.payPauseEnter()}else{document.getElementById('welcomeTitle').textContent='Please reload this page to start the simulation.'}">Enter simulated phone →</button>
+<button id="startButton" class="primary" style="width:100%" data-i18n="start" type="button" disabled onclick="if(typeof window.payPauseEnter==='function'){window.payPauseEnter()}else{document.getElementById('welcomeTitle').textContent='Please reload this page to start the simulation.'}">Enter simulated phone →</button>
 <div class="footnote" data-i18n="privacyFoot">No account. No uploads. No real transactions. Your choices stay in this browser session.</div>
 </div>
 <div class="welcome-art" aria-label="Illustration of a fictional phone with original app icons">
@@ -264,7 +264,7 @@ if(act==='safety'){renderApp('safety');return}
 $('phoneBody').addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b){action(b.dataset.action);return}const a=e.target.closest('[data-app]');if(a){renderApp(a.dataset.app);return}});
 $('phoneNav').addEventListener('click',e=>{const a=e.target.closest('[data-app]');if(a)renderApp(a.dataset.app)});
 $('welcomeApps').addEventListener('click',()=>toast('Choose “Enter simulated phone” to begin.'));
-$('startButton').addEventListener('click',enter);$('consentCheck').addEventListener('change',()=>{});
+$('startButton').addEventListener('click',enter);const syncConsent=()=>{$('startButton').disabled=!$('consentCheck').checked};$('consentCheck').addEventListener('change',syncConsent);syncConsent();
 $('languageSelect').addEventListener('change',e=>{lang=e.target.value;applyLanguage()});
 $('easySelect').addEventListener('change',e=>{easy=e.target.value==='easy';document.body.classList.toggle('easy',easy)});
 $('exitButton').addEventListener('click',exit);$('homeBtn').addEventListener('click',goHome);$('safetyBtn').addEventListener('click',()=>renderApp('safety'));
