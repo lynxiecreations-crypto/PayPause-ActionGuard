@@ -219,7 +219,11 @@ if(act.startsWith('verify:')){const risk=act.slice(7);renderApp('outcome');$('ph
 if(act.startsWith('risk:')){const risk=act.slice(5);renderApp('outcome');$('phoneBody').innerHTML=outcome(risk,false);return}
 if(act.startsWith('web:')){const url=act.slice(4);const key=url==='parcel-fee.example.invalid'?'deliveryWeb':url==='quick-work.example.invalid'?'jobWeb':'bankWeb';renderApp(key);return}
 if(act.startsWith('safeWeb:')){renderApp('outcome');$('phoneBody').innerHTML=outcome(act.slice(8),true);return}
-if(act==='familyChat'||act==='bankChat'||act==='deliveryChat'||act==='normalChat'||act==='supportChat'||act==='jobEmail'||act==='bankEmail'||act==='normalEmail'||act==='bankCall'||act==='familyCall'||act==='normalCall'||act==='bankWeb'||act==='deliveryWeb'||act==='jobWeb'||act==='normalWeb'||act==='apkBank'||act==='apkDelivery'||act==='apkPhoto'||act==='apkWhatsApp'||act==='apkInstagram'){renderApp(act);return}
+if(chatData[act]){renderApp('chat');$('phoneBody').innerHTML=chatDetail(act);return}
+if(emailData[act]){renderApp('email');$('phoneBody').innerHTML=emailDetail(act);return}
+if(['bankCall','familyCall','normalCall'].includes(act)){renderApp('phone');$('phoneBody').innerHTML=callDetail(act);return}
+if(['bankWeb','deliveryWeb','jobWeb','normalWeb'].includes(act)){renderApp('web');$('phoneBody').innerHTML=webDetail(act);return}
+if(['apkBank','apkDelivery','apkPhoto','apkWhatsApp','apkInstagram'].includes(act)){renderApp('download');$('phoneBody').innerHTML=apkDetail(act);return}
 if(act==='payCheck'){renderApp('outcome');$('phoneBody').innerHTML=outcome('riskPay',true);return}
 if(act==='paySafe'){renderApp('outcome');$('phoneBody').innerHTML=outcome('riskPay',true);return}
 if(act==='payRisk'){renderApp('outcome');$('phoneBody').innerHTML=outcome('riskPay',false);return}
